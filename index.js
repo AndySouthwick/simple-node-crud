@@ -13,24 +13,27 @@ const salt =  require('./secrets')
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
 
 const projects = db.get('usertest')
 
 app.post('/loginUser', (req, res) => {
    let loginCreds = req.body
     projects.findOne({accountUser: loginCreds.accountUser}).then((docs) => {
-      console.log(docs)
-      bcrypt.compare(loginCreds.accountUser, docs.accountPassword, (err, theResponse) => {
+      bcrypt.compare(loginCreds.password, docs.accountPassIt, (err, theResponse) => {
             const theToken = {
         token: jwt.sign({
         exp: Math.floor(Date.now() / 1000) + (60 * 60),
         sub: docs.accountUser
       },
-        salt.salt)
+        salt)
     }
     console.log(theToken)
         res.send(theToken)
-
       })
     }).catch(e => {
       return res.send('nothing')
@@ -39,11 +42,12 @@ app.post('/loginUser', (req, res) => {
 
 app.post('/createNewAccount', (req, res) => {
   const newAccount = req.body
-
-  bcrypt.hash(newAccount.accountPassword, saltRounds, function(err, hash) {
+  bcrypt.hash(newAccount.password, saltRounds, function(err, hash) {
     projects.insert({
-      accountUser: newAccount.accountUser,
-      accountPassword: hash
+      firstname: newAccount.firstname,
+      lastname: newAccount.lastname,
+      email: newAccount.email,
+      accountPassIt: hash
     })
     res.send(newAccount)
   });
@@ -80,3 +84,4 @@ app.get('/sendcred/:id', (req, res) => {
 
 
 app.listen(3000)
+
